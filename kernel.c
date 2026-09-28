@@ -8,6 +8,7 @@
 #include "render.h"
 #include "strutil.h"
 #include "version.h"
+#include "panic.h"
 #include <stdint.h>
 
 typedef struct {
@@ -88,7 +89,7 @@ void kernel_main(multiboot_info_t *mbd) {
   // Mantém interrupções mascaráveis desabilitadas durante a inicialização
   asm volatile("cli" ::: "memory");
 
-  // Troca a GDT provisória do GRUB pela nossa, antes de qualquer outra coisa
+  // Carrega nossa GDT e ativa o TSS (pilha de ring 0 para futuras transicoes).
   gdt_instalar();
 
   // Instala a Tabela de Interrupções (IDT)
@@ -101,12 +102,23 @@ void kernel_main(multiboot_info_t *mbd) {
   pic_init();
 
   if (!(mbd->flags & (1 << 12)))
-    return;
+    kernel_panic("Boot sem framebuffer disponivel.", 0);
+
+  // O renderizador atual usa pixels RGB 0x00RRGGBB em enderecos de 32 bits.
+  if ((mbd->framebuffer_addr >> 32) || mbd->framebuffer_bpp != 32 ||
+      mbd->framebuffer_type != 1 || mbd->color_info[0] != 16 ||
+      mbd->color_info[1] != 8 || mbd->color_info[2] != 8 ||
+      mbd->color_info[3] != 8 || mbd->color_info[4] != 0 ||
+      mbd->color_info[5] != 8)
+    kernel_panic("Formato de framebuffer nao suportado.", 0);
 
   uint32_t *fb = (uint32_t *)(uintptr_t)mbd->framebuffer_addr;
   uint32_t pitch = mbd->framebuffer_pitch;
   uint32_t width = mbd->framebuffer_width;
   uint32_t height = mbd->framebuffer_height;
+
+  if (!panic_configurar_video(fb, pitch, width, height))
+    kernel_panic("Geometria de framebuffer invalida.", 0);
 
   // Fundo preto
   for (uint32_t y = 0; y < height; y++) {

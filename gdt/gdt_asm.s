@@ -25,3 +25,13 @@ gdt_flush:
 recarrega_cs:
     ret
 .size gdt_flush, . - gdt_flush
+
+.global tss_flush
+.type tss_flush, @function
+tss_flush:
+    mov 4(%esp), %eax
+    ltr %ax
+    ret
+.size tss_flush, . - tss_flush
+
+.section .note.GNU-stack,"",@progbits

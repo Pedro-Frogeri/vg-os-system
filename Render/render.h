@@ -5,6 +5,8 @@
 void desenhar_logo(uint32_t *fb, uint32_t pitch, int start_x, int start_y);
 void desenhar_char(char c, int x, int y, uint32_t cor, uint32_t *fb,
                    uint32_t pitch);
+void desenhar_char_com_fundo(char c, int x, int y, uint32_t cor, uint32_t fundo,
+                            uint32_t *fb, uint32_t pitch);
 void desenhar_string(const char *str, int start_x, int start_y, uint32_t cor,
                      uint32_t *fb, uint32_t pitch);
 
