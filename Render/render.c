@@ -17,6 +17,11 @@ void desenhar_logo(uint32_t *fb, uint32_t pitch, int start_x, int start_y) {
 // Desenha uma única letra em alta resolução
 void desenhar_char(char c, int x, int y, uint32_t cor, uint32_t *fb,
                    uint32_t pitch) {
+  desenhar_char_com_fundo(c, x, y, cor, 0x00000000, fb, pitch);
+}
+
+void desenhar_char_com_fundo(char c, int x, int y, uint32_t cor, uint32_t fundo,
+                            uint32_t *fb, uint32_t pitch) {
   const uint16_t *bitmap = font_ibm_plex[(uint8_t)c];
 
   for (int row = 0; row < 24; row++) {
@@ -25,7 +30,7 @@ void desenhar_char(char c, int x, int y, uint32_t cor, uint32_t *fb,
       if (bits & (1 << col)) {
         fb[((y + row) * pitch / 4) + (x + col)] = cor;
       } else {
-        fb[((y + row) * pitch / 4) + (x + col)] = 0x00000000;
+        fb[((y + row) * pitch / 4) + (x + col)] = fundo;
       }
     }
   }

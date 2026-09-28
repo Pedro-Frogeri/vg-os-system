@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -m32 -ffreestanding -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -Wall -Wextra -I. -IRender -Ikeyboard -Icomandos -Iimages/logo -Igdt -Iidt -Iisr
+CFLAGS = -m32 -ffreestanding -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -Wall -Wextra -I. -Iinclude -IRender -Ikeyboard -Icomandos -Iimages/logo -Igdt -Iidt -Iisr
 AS = as
 ASFLAGS = --32
 NASM = nasm
@@ -21,10 +21,12 @@ COMMON_OBJS = $(BUILD_DIR)/kernel.o \
               $(BUILD_DIR)/logo.o \
               $(BUILD_DIR)/comandos.o \
               $(BUILD_DIR)/gdt.o \
+              $(BUILD_DIR)/tss.o \
               $(BUILD_DIR)/gdt_asm.o \
               $(BUILD_DIR)/idt.o \
               $(BUILD_DIR)/idt_asm.o \
               $(BUILD_DIR)/isr.o \
+              $(BUILD_DIR)/panic.o \
               $(BUILD_DIR)/interrupts.o \
               $(BUILD_DIR)/pic.o
 
@@ -42,7 +44,7 @@ $(BUILD_DIR)/boot_1440.o: boot/boot.s | $(BUILD_DIR)
 $(BUILD_DIR)/boot_1024.o: boot/boot.s | $(BUILD_DIR)
 	$(AS) $(ASFLAGS) --defsym SCR_WIDTH=1024 --defsym SCR_HEIGHT=768 $< -o $@
 
-$(BUILD_DIR)/kernel.o: kernel.c pic/pic.h | $(BUILD_DIR)
+$(BUILD_DIR)/kernel.o: kernel.c pic/pic.h gdt/gdt.h include/panic.h isr/isr.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/pic.o: pic/pic.c pic/pic.h | $(BUILD_DIR)
@@ -54,16 +56,19 @@ $(BUILD_DIR)/strutil.o: strutil.c | $(BUILD_DIR)
 $(BUILD_DIR)/logo.o: images/logo/logo.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/render.o: Render/render.c | $(BUILD_DIR)
+$(BUILD_DIR)/render.o: Render/render.c Render/render.h Render/font.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/keyboard.o: keyboard/keyboard.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/comandos.o: comandos/comandos.c | $(BUILD_DIR)
+$(BUILD_DIR)/comandos.o: comandos/comandos.c comandos/comandos.h gdt/gdt.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/gdt.o: gdt/gdt.c | $(BUILD_DIR)
+$(BUILD_DIR)/gdt.o: gdt/gdt.c gdt/gdt.h gdt/tss.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/tss.o: gdt/tss.c gdt/tss.h gdt/gdt.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/gdt_asm.o: gdt/gdt_asm.s | $(BUILD_DIR)
@@ -75,7 +80,10 @@ $(BUILD_DIR)/idt.o: idt/idt.c | $(BUILD_DIR)
 $(BUILD_DIR)/idt_asm.o: idt/idt_asm.s | $(BUILD_DIR)
 	$(AS) $(ASFLAGS) $< -o $@
 
-$(BUILD_DIR)/isr.o: isr/isr.c | $(BUILD_DIR)
+$(BUILD_DIR)/isr.o: isr/isr.c isr/isr.h include/panic.h idt/idt.h gdt/gdt.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/panic.o: src/arch/x86/panic.c include/panic.h isr/isr.h Render/render.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # interrupts.s usa sintaxe NASM (nao GAS), por isso monta com nasm e nao com $(AS).

@@ -8,7 +8,8 @@ Um sistema operacional x86 de 32 bits desenvolvido do zero para fins acadêmicos
 ---
 ## 📋 Funcionalidades Principais
 * **Kernel Próprio (Modo Protegido 32-bit):** Escrito em C e Assembly x86 com gerenciamento manual de memória e periféricos.
-* **Gerenciamento e Proteção de Memória:** Configuração da Global Descriptor Table (GDT) com 5 descritores, estruturando o espaço de endereçamento de 32 bits e garantindo a proteção do sistema através de        rotinas de alinhamento de registradores de segmento.
+* **GDT e TSS:** GDT com 6 descritores, segmentos flat de kernel/usuario e TSS de 32 bits carregado por `LTR`. Pilha de kernel reservada para futuras transicoes de privilegio. Essa etapa nao implementa processos, escalonamento ou isolamento de memoria por paginacao.
+* **Kernel panic:** Tela de erro fatal com mensagem, registradores salvos na excecao e parada em `CLI`/`HLT`. Integrada aos 32 tratadores de excecao. O comando `panic` provoca `UD2` para demonstracao e exige reiniciar a maquina virtual.
 * **Bootloader Multiboot (GRUB):** Configuração nativa de vídeo via cabeçalho Multiboot, inicializando o modo gráfico diretamente no boot.
 * **Saída Gráfica em Framebuffer Linear (VESA):**
   - Renderização direta pixel a pixel sem depender de interrupções da BIOS em modo real.
@@ -20,7 +21,7 @@ Um sistema operacional x86 de 32 bits desenvolvido do zero para fins acadêmicos
   - Suporte a atalhos de teclado: `Ctrl+L` (limpar tela), `Ctrl+C` (copiar linha) e `Ctrl+V` (colar).
   - Tratamento de repetição de teclas (*key repeat*) e Caps Lock.
 * **Terminal Interativo Integrado:**
-  - Comandos embutidos: `help`, `version`, `clear`.
+  - Comandos embutidos: `help`, `version`, `clear`, `exit`, `gdt` (diagnostico de GDT/TSS), `panic` (teste fatal).
   - Tratamento de quebra automática de linha (*line wrap*) e Backspace multilinha.
 * **Arquitetura Modular:**
   - Centralização de versão do sistema (`version.h`).

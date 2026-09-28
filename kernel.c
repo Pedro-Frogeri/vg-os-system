@@ -8,6 +8,7 @@
 #include "render.h"
 #include "strutil.h"
 #include "version.h"
+#include "include/panic.h"
 #include <stdint.h>
 
 typedef struct {
@@ -88,26 +89,30 @@ void kernel_main(multiboot_info_t *mbd) {
   // Mantém interrupções mascaráveis desabilitadas durante a inicialização
   asm volatile("cli" ::: "memory");
 
-  // Troca a GDT provisória do GRUB pela nossa, antes de qualquer outra coisa
-  gdt_instalar();
-
-  // Instala a Tabela de Interrupções (IDT)
-  idt_install();
-
-  // Registra os 32 stubs de exceção (interrupts.s) na IDT
-  isr_install();
-
-  // Remapeia o PIC; as IRQs ficam mascaradas até terem handlers proprios
-  pic_init();
-
-  if (!(mbd->flags & (1 << 12)))
-    return;
-
+  // 1. OBTÉM DADOS DO FRAMEBUFFER E CONFIGURA O PANIC EM PRIMEIRO LUGAR
   uint32_t *fb = (uint32_t *)(uintptr_t)mbd->framebuffer_addr;
   uint32_t pitch = mbd->framebuffer_pitch;
   uint32_t width = mbd->framebuffer_width;
   uint32_t height = mbd->framebuffer_height;
 
+  panic_configurar_video(fb, pitch, width, height);
+
+  // 2. VALIDAÇÕES (se falharem, o kernel_panic já tem o vídeo pronto para desenhar!)
+  if (!(mbd->flags & (1 << 12)))
+    kernel_panic("Boot sem framebuffer disponivel.", 0);
+
+  if ((mbd->framebuffer_addr >> 32) || mbd->framebuffer_bpp != 32 ||
+      mbd->framebuffer_type != 1)
+    kernel_panic("Formato de framebuffer nao suportado.", 0);
+
+  if (width == 0 || height == 0 || pitch == 0)
+    kernel_panic("Geometria de framebuffer invalida.", 0);
+
+  // 3. INICIALIZA A GDT, IDT E PIC
+  gdt_instalar();
+  idt_install();
+  isr_install();
+  pic_init();
   // Fundo preto
   for (uint32_t y = 0; y < height; y++) {
     for (uint32_t x = 0; x < width; x++)

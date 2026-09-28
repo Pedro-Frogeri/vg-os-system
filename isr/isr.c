@@ -1,7 +1,15 @@
 #include "isr.h"
+#include "panic.h"
+#include "idt.h"
+#include "gdt.h"
+#include <stddef.h>
+
+_Static_assert(sizeof(registers_t) == 56, "Quadro ISR deve ter 56 bytes");
+_Static_assert(offsetof(registers_t, esp_dummy) == 16, "Offset de PUSHA incorreto");
+_Static_assert(offsetof(registers_t, eip) == 44, "Offset de EIP incorreto");
 
 // Descricoes textuais das 32 excecoes padrao da CPU x86 (Intel SDM vol. 3,
-// cap. 6). Usadas futuramente por uma rotina de kernel panic.
+// cap. 6). Exibidas pela rotina de kernel panic.
 static const char *excecoes[32] = {
     "Divisao por Zero",
     "Depuracao (Debug)",
@@ -39,32 +47,15 @@ static const char *excecoes[32] = {
 
 // Handler generico: todos os 32 stubs de excecao (interrupts.s) caem aqui.
 //
-// Por enquanto so trava a maquina, pois este modulo nao tem acesso ao
-// framebuffer (isso pertence a render.h / kernel.c). O ponto de extensao
-// natural e chamar uma futura rotina de "kernel panic" passando
-// excecoes[regs.int_no], regs.err_code e regs.eip para desenhar a tela de
-// erro antes de travar.
+// Mantem o argumento por valor, conforme o contrato do stub Assembly existente.
+// Seu endereco aponta para o quadro salvo, nao para registradores lidos depois.
 void isr_handler(registers_t regs) {
+    // O stub atual nao limpa DF; garanta a direcao esperada pelas rotinas C.
+    // O valor original de EFLAGS permanece salvo em regs.eflags.
+    asm volatile("cld" ::: "cc");
     const char *nome = (regs.int_no < 32) ? excecoes[regs.int_no] : "Excecao desconhecida";
-    (void)nome; // evita warning de "unused" ate a integracao com render.h
-
-    // TODO: chamar kernel_panic(nome, regs.err_code, regs.eip) quando essa
-    // rotina existir.
-
-    asm volatile("cli");
-    while (1) {
-        asm volatile("hlt");
-    }
+    kernel_panic(nome, &regs);
 }
-
-// ATENCAO: presume-se que o modulo idt/ exponha uma funcao com esta
-// assinatura, seguindo a mesma convencao de gdt_set_entry:
-//
-//   void idt_set_entry(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
-//
-// Se o nome ou a assinatura real em idt.h/idt.c forem diferentes, ajuste
-// esta declaracao e a chamada dentro de isr_install().
-extern void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
 
 // Registra as 32 excecoes da CPU na IDT.
 void isr_install(void) {
@@ -78,6 +69,6 @@ void isr_install(void) {
     for (int i = 0; i < 32; i++) {
         // Seletor 0x08: segmento de codigo do kernel (definido na GDT).
         // Flags 0x8E: presente, DPL = 0, gate de interrupcao de 32 bits.
-        idt_set_gate((uint8_t)i, (uint32_t)isr_stubs[i], 0x08, 0x8E);
+        idt_set_gate((uint8_t)i, (uint32_t)isr_stubs[i], SELETOR_CODIGO_KERNEL, 0x8E);
     }
 }
