@@ -63,16 +63,23 @@ make run
 ```text
 vg-os-system/
 ├── boot/           # Inicialização em Assembly (boot.s) e configuração do GRUB (grub.cfg)
-├── gdt/            # Implementação da Global Descriptor Table (GDT) e rotinas de alinhamento (gdt.c, gdt.h, gdt_asm.s)
-├── images/         # Recursos gráficos e logotipo em matriz de pixels (logo/)
-├── keyboard/       # Driver do controlador de teclado PS/2 e mapeamento de scancodes
-├── Render/         # Subsistema gráfico em Framebuffer e tabela de fontes (font.h)
-├── comandos/       # Interpretador e implementação de comandos do terminal
-├── build/          # Arquivos objeto (.o) e executável final gerados pelo Makefile
-├── kernel.c        # Ponto de entrada do kernel (kernel_main) e loop do terminal
-├── version.h       # Informações centralizadas de versão do VG OS
-├── linker.ld       # Script do Linker definindo o layout de memória
-└── Makefile        # Script automatizado de compilação e criação da ISO
+├── comandos/       # Interpretador e rotinas dos comandos do terminal (comandos.c, comandos.h)
+├── gdt/            # Global Descriptor Table e TSS (gdt.c, gdt.h, gdt_asm.s, tss.c, tss.h)
+├── idt/            # Interrupt Descriptor Table (idt.c, idt.h, idt_asm.s)
+├── images/         # Recursos gráficos e logotipo em matriz de pixels (images/logo/)
+├── include/        # Cabeçalhos centralizados de sistema e diagnóstico (panic.h)
+├── iso_root/       # Estrutura base de diretórios utilizada pelo grub-mkrescue
+├── isr/            # Tratadores de interrupções e exceções da CPU (isr.c, isr.h, interrupts.s)
+├── keyboard/       # Driver do controlador de teclado PS/2 e scancodes ABNT2 (keyboard.c, keyboard.h)
+├── pic/            # Remapeamento e controle do chip 8259 PIC (pic.c, pic.h)
+├── Render/         # Subsistema de vídeo em Framebuffer linear e fonte bitmap (render.c, render.h, font.h)
+├── src/            # Módulos organizados por arquitetura (src/arch/x86/panic.c)
+├── build/          # Binários (.bin) e arquivos objeto (.o) gerados na compilação
+├── kernel.c        # Ponto de entrada do kernel (kernel_main) e ciclo principal
+├── linker.ld       # Script do Linker definindo o layout de memória física
+├── strutil.c / .h  # Funções auxiliares para manipulação de strings em modo freestanding
+├── version.h       # Informações centralizadas de versão e build do VG OS
+└── Makefile        # Automação de compilação, montagem e geração da ISO
 ```
 ## 📚 Referências & Agradecimentos
 * **[OSDev Wiki](https://wiki.osdev.org/)** - Por fornecer tutoriais e documentação inestimáveis, bem como o guia fundamental "Bare Bones" utilizado para construir este sistema operacional.
