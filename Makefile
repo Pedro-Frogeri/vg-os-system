@@ -27,7 +27,7 @@ C_SRCS = \
 	comandos/comandos.c \
 	gdt/gdt.c \
 	gdt/tss.c \
-	idt/idt.c \
+	src/arch/x86/idt.c \
 	images/logo/logo.c \
 	isr/isr.c \
 	keyboard/keyboard.c \
